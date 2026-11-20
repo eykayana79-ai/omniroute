@@ -62,9 +62,7 @@
 
   .rs-photo {
     height: 262px;
-    background: var(--rc-photo, linear-gradient(160deg, #f6cfdb 0%, #e8a3ba 100%));
-    background-size: cover;
-    background-position: center;
+    background: url("./photo.jpg") center top / cover no-repeat;
   }
 
   .rs-body {
@@ -94,7 +92,7 @@
 
   .rs-now {
     color: var(--rs-accent);
-    font-size: 30px;
+    font-size: 28px;
     font-weight: 800;
     line-height: 1.2;
   }

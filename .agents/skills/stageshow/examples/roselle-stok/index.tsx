@@ -7,8 +7,6 @@ import "./stok.css";
 //
 // Real strings: the headline, the product name, its price (new, old, saving),
 // the stock line, four sizes, the button. Everything else is shape.
-// Swap the placeholder tile for the real product photo with
-// `--rc-photo: url(...)` on .rs-page.
 
 type S = { stock: number; gone: string[]; sold: boolean; veil: boolean };
 const START: S = { stock: 48, gone: [], sold: false, veil: false };
@@ -44,7 +42,7 @@ export default function RoselleStok() {
     <div className="rs-page">
       <div className="rs-copy">
         <span className="rs-kicker">Clearance Sale · rosellertw</span>
-        <div className="rs-title">Semalam 48 helai. Sekarang? 😳</div>
+        <div className="rs-title">Tinggal berapa helai lagi? 😳</div>
       </div>
       <Stage<S>
         width={405}
@@ -61,11 +59,11 @@ export default function RoselleStok() {
             <div className="rs-app">
               <div className="rs-photo" />
               <div className="rs-body" data-veil={s.veil || undefined}>
-                <div className="rs-name">Baju Kurung Dahlia</div>
+                <div className="rs-name">Dahliah Mom Kurung Kedah</div>
                 <div className="rs-price">
-                  <span className="rs-now">RM39</span>
-                  <span className="rs-was">RM89</span>
-                  <Badge tone="danger">-56%</Badge>
+                  <span className="rs-now">RM179.10</span>
+                  <span className="rs-was">RM329.00</span>
+                  <Badge tone="danger">-46%</Badge>
                 </div>
 
                 <div className="rs-stock">
