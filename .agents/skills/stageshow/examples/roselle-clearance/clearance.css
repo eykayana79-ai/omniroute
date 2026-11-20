@@ -1,0 +1,93 @@
+.rc-page {
+  --rc-ink: #4a1f33;
+  --rc-accent: #c94f7c;
+  display: flex;
+  flex-direction: column;
+  width: 405px;
+  height: 720px;
+  background: linear-gradient(180deg, #fde9ef 0%, #f9d6e1 100%);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+
+  .ss-stage {
+    overflow: hidden;
+    background: transparent;
+  }
+
+  .ss-ground {
+    background: transparent;
+  }
+
+  .rc-copy {
+    box-sizing: border-box;
+    height: 196px;
+    padding: 40px 22px 0;
+    display: grid;
+    align-content: start;
+    gap: 12px;
+    justify-items: start;
+  }
+
+  .rc-kicker {
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--rc-accent);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1.3;
+    text-transform: uppercase;
+  }
+
+  .rc-title {
+    color: var(--rc-ink);
+    font-size: 27px;
+    font-weight: 800;
+    line-height: 1.18;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  .rc-phone {
+    position: absolute;
+    top: 0;
+    left: 22px;
+  }
+
+  /* The kit's stack gap would stay open under closed items: space each
+     order inside its own collapse instead */
+  .ss-lock__stack {
+    gap: 0;
+  }
+
+  .ss-lock__stack[data-at="top"] {
+    top: 262px;
+  }
+
+  .rc-exit {
+    padding-bottom: 8px;
+  }
+
+  .rc-tiktok {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    background: #000;
+  }
+
+  /* Cleared: the orders lift away together, the newest first */
+  .rc-stack {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .rc-stack[data-out] .rc-exit {
+    transition:
+      opacity 260ms ease,
+      translate 420ms cubic-bezier(0.3, 0.75, 0.1, 1);
+    opacity: 0;
+    translate: 0 -24px;
+    transition-delay: calc(var(--k) * 40ms);
+  }
+}
