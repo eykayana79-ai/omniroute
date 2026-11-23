@@ -46,6 +46,7 @@
     "app.__qa_backup",
     "vscode-extension",
     "omnirouteCloud",
-    "omnirouteSite"
+    "omnirouteSite",
+    "video-studio"
   ]
 }
