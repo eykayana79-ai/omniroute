@@ -1,49 +1,44 @@
+import type { BuilderState } from "./promptBuilder.ts";
+
 /**
- * Ready-made motion prompts for modest fashion product shots.
- * Labels are BM for the team; prompts are English because the video models
- * follow English motion directions more reliably.
+ * Quick starts: each preset is just a set of prompt-builder choices,
+ * so the team can apply one and then tweak any single option.
  */
 export interface Preset {
   id: string;
   label: string;
-  prompt: string;
+  state: BuilderState;
 }
 
 export const PRESETS: Preset[] = [
   {
     id: "spin",
     label: "Pusing perlahan",
-    prompt:
-      "The model slowly turns around in place, the abaya fabric flows and sways naturally, soft studio lighting, smooth slow motion, static camera.",
+    state: { motion: "spin", fabric: "flow", camera: "static", light: "studio", style: "slowmo" },
   },
   {
     id: "walk",
     label: "Jalan ke kamera",
-    prompt:
-      "The model walks gracefully toward the camera, the fabric moves with each step, gentle breeze, fashion runway feel, camera slowly tracks back.",
+    state: { motion: "walk", fabric: "flow", camera: "pull", light: "golden", style: "premium" },
   },
   {
     id: "detail",
     label: "Close-up detail",
-    prompt:
-      "Slow camera push-in on the fabric details, embroidery and texture, soft light glints on the fabric, shallow depth of field.",
+    state: { motion: "still", fabric: "none", camera: "detail", light: "studio", style: "premium" },
   },
   {
     id: "breeze",
     label: "Kain ditiup angin",
-    prompt:
-      "A gentle breeze lifts the hem and sleeves, the fabric ripples softly, the model stands elegantly and smiles, warm golden hour light.",
+    state: { motion: "smile", fabric: "breeze", camera: "push", light: "golden", style: "slowmo" },
   },
   {
     id: "ootd",
     label: "Pose OOTD",
-    prompt:
-      "The model changes between three natural poses, gently adjusts her hijab and smiles at the camera, TikTok outfit-of-the-day style, handheld feel.",
+    state: { motion: "poses", fabric: "flow", camera: "handheld", light: "morning", style: "ugc" },
   },
   {
-    id: "orbit",
-    label: "Kamera orbit",
-    prompt:
-      "The camera slowly orbits 180 degrees around the model, the full outfit stays visible, clean minimal background, smooth cinematic motion.",
+    id: "raya",
+    label: "Vibe raya",
+    state: { motion: "twirl", fabric: "flow", camera: "orbit", light: "raya", style: "premium" },
   },
 ];

@@ -4,6 +4,13 @@ import { useCallback, useEffect, useRef, useState, type DragEvent } from "react"
 
 import type { AspectRatio, ModelKey, VideoLength } from "@/lib/models.ts";
 import type { Preset } from "@/lib/presets.ts";
+import {
+  composePrompt,
+  DEFAULT_STATE,
+  FIELDS,
+  type BuilderState,
+  type FieldId,
+} from "@/lib/promptBuilder.ts";
 
 export interface ModelInfo {
   key: ModelKey;
@@ -69,8 +76,10 @@ export default function Studio({ models, presets }: { models: ModelInfo[]; prese
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [selected, setSelected] = useState<ModelKey[]>(["seedance"]);
-  const [presetId, setPresetId] = useState(presets[0]?.id ?? "");
-  const [prompt, setPrompt] = useState(presets[0]?.prompt ?? "");
+  const [mode, setMode] = useState<"builder" | "manual">("builder");
+  const [builder, setBuilder] = useState<BuilderState>(presets[0]?.state ?? DEFAULT_STATE);
+  const [extra, setExtra] = useState("");
+  const [manualPrompt, setManualPrompt] = useState("");
   const [length, setLength] = useState<VideoLength>("short");
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>("9:16");
   const [audio, setAudio] = useState(false);
@@ -172,12 +181,21 @@ export default function Studio({ models, presets }: { models: ModelInfo[]; prese
   }
 
   function pickPreset(p: Preset) {
-    setPresetId(p.id);
-    setPrompt(p.prompt);
+    setBuilder(p.state);
+  }
+
+  function pickOption(field: FieldId, optionId: string) {
+    setBuilder((prev) => ({ ...prev, [field]: optionId }));
+  }
+
+  function editManually() {
+    setManualPrompt(composePrompt(builder, extra));
+    setMode("manual");
   }
 
   async function generate() {
     setError("");
+    const prompt = finalPrompt;
     const chosen = models.filter((m) => selected.includes(m.key));
     const batch: Job[] = chosen.map((m) => ({
       id: `${Date.now()}-${m.key}-${Math.random().toString(36).slice(2, 7)}`,
@@ -227,7 +245,12 @@ export default function Studio({ models, presets }: { models: ModelInfo[]; prese
 
   const anyAspect = models.some((m) => selected.includes(m.key) && m.supportsAspectRatio);
   const anyAudio = models.some((m) => selected.includes(m.key) && m.supportsAudio);
-  const canGenerate = !!imageUrl && !uploading && selected.length > 0 && prompt.trim().length >= 3;
+  const finalPrompt = mode === "builder" ? composePrompt(builder, extra) : manualPrompt;
+  const activePreset = presets.find((p) =>
+    FIELDS.every((f) => p.state[f.id] === builder[f.id])
+  )?.id;
+  const canGenerate =
+    !!imageUrl && !uploading && selected.length > 0 && finalPrompt.trim().length >= 3;
   const pendingCount = jobs.filter(isPending).length;
 
   return (
@@ -300,29 +323,96 @@ export default function Studio({ models, presets }: { models: ModelInfo[]; prese
           </div>
 
           <div className="section">
-            <span className="label">3. Gerakan</span>
-            <div className="chips">
-              {presets.map((p) => (
-                <button
-                  type="button"
-                  key={p.id}
-                  className={`chip${presetId === p.id ? " on" : ""}`}
-                  onClick={() => pickPreset(p)}
-                >
-                  {p.label}
-                </button>
-              ))}
+            <span className="label">3. Arahan video (prompt)</span>
+            <div className="seg" role="tablist">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={mode === "builder"}
+                className={mode === "builder" ? "on" : ""}
+                onClick={() => setMode("builder")}
+              >
+                Prompt builder
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={mode === "manual"}
+                className={mode === "manual" ? "on" : ""}
+                onClick={editManually}
+              >
+                Tulis sendiri
+              </button>
             </div>
-            <div style={{ height: 10 }} />
-            <textarea
-              value={prompt}
-              onChange={(e) => {
-                setPrompt(e.target.value);
-                setPresetId("");
-              }}
-              aria-label="Prompt"
-              placeholder="Terangkan gerakan dalam English untuk hasil terbaik"
-            />
+
+            {mode === "builder" ? (
+              <>
+                <div className="field">
+                  <span className="sublabel">Mula cepat</span>
+                  <div className="chips">
+                    {presets.map((p) => (
+                      <button
+                        type="button"
+                        key={p.id}
+                        className={`chip preset${activePreset === p.id ? " on" : ""}`}
+                        onClick={() => pickPreset(p)}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {FIELDS.map((f) => (
+                  <div className="field" key={f.id}>
+                    <span className="sublabel">{f.label}</span>
+                    <div className="chips" role="radiogroup" aria-label={f.label}>
+                      {f.options.map((o) => (
+                        <button
+                          type="button"
+                          key={o.id}
+                          role="radio"
+                          aria-checked={builder[f.id] === o.id}
+                          className={`chip${builder[f.id] === o.id ? " on" : ""}`}
+                          onClick={() => pickOption(f.id, o.id)}
+                        >
+                          {o.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                <div className="field">
+                  <span className="sublabel">Nota tambahan (pilihan)</span>
+                  <input
+                    type="text"
+                    value={extra}
+                    maxLength={300}
+                    onChange={(e) => setExtra(e.target.value)}
+                    placeholder="cth: she holds a small beige handbag"
+                    aria-label="Nota tambahan"
+                  />
+                </div>
+                <div className="preview">
+                  <span className="sublabel">Prompt yang akan dihantar</span>
+                  <p>{finalPrompt}</p>
+                  <button type="button" className="link" onClick={editManually}>
+                    Edit prompt ni secara manual →
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <textarea
+                  value={manualPrompt}
+                  onChange={(e) => setManualPrompt(e.target.value)}
+                  aria-label="Prompt"
+                  placeholder="Terangkan gerakan dalam English untuk hasil terbaik"
+                />
+                <p className="hint">
+                  Tip: satu gerakan utama + satu gerakan kamera + cahaya. Tulis dalam English.
+                </p>
+              </>
+            )}
             <label className="toggle">
               <input
                 type="checkbox"

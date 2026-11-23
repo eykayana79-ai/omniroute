@@ -13,7 +13,8 @@ Ciri-ciri:
 
 - Upload gambar (JPG/PNG/WebP, max 10MB)
 - Pilih **beberapa model sekaligus** untuk banding hasil sebelah-menyebelah
-- 6 preset gerakan fashion (pusing, jalan, close-up, angin, OOTD, orbit) + prompt sendiri
+- **Prompt builder**: pilih gerakan model, gerakan kain, kamera, cahaya dan gaya dalam BM, dan app susun jadi prompt English
+- 6 preset "Mula cepat" (boleh ubah satu-satu pilihan lepas tu), atau tukar ke mod **Tulis sendiri**
 - Pilihan "Kekalkan design baju", supaya warna, corak dan tudung tak berubah
 - Sejarah video disimpan dalam browser, dan job yang sedang jalan tetap diteruskan walaupun page di-refresh
 - Login password untuk team, dengan had video harian

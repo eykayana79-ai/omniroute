@@ -12,6 +12,13 @@ import {
   type GenerateOptions,
 } from "../lib/models.ts";
 import { PRESETS } from "../lib/presets.ts";
+import {
+  composePrompt,
+  DEFAULT_STATE,
+  FIELDS,
+  isValidState,
+  optionText,
+} from "../lib/promptBuilder.ts";
 import { generateSchema, statusSchema } from "../lib/schema.ts";
 
 const opts: GenerateOptions = {
@@ -104,8 +111,37 @@ test("daily limit blocks after the limit and resets on a new day", () => {
   assert.equal(takeSlot(0, day1), true, "0 means no limit");
 });
 
-test("presets have unique ids and non-empty prompts", () => {
+test("presets have unique ids and only use real builder options", () => {
   const ids = new Set(PRESETS.map((p) => p.id));
   assert.equal(ids.size, PRESETS.length);
-  for (const p of PRESETS) assert.ok(p.prompt.length > 20, p.id);
+  for (const p of PRESETS) {
+    assert.ok(isValidState(p.state), p.id);
+    assert.ok(composePrompt(p.state).length > 40, p.id);
+  }
+});
+
+test("composePrompt builds clean English sentences from builder choices", () => {
+  assert.equal(
+    composePrompt(DEFAULT_STATE),
+    "The model slowly turns around in place, the fabric flows and sways naturally with her movement. " +
+      "Static camera, full outfit in frame. Bright soft studio lighting, smooth slow motion."
+  );
+});
+
+test("composePrompt skips empty fabric option and appends notes as a sentence", () => {
+  const p = composePrompt({ ...DEFAULT_STATE, fabric: "none" }, "  she holds a beige handbag ");
+  assert.ok(p.startsWith("The model slowly turns around in place. Static camera"), p);
+  assert.ok(p.endsWith("She holds a beige handbag."), p);
+  assert.ok(!p.includes(",."), p);
+});
+
+test("builder fields have unique option ids and the default state is valid", () => {
+  assert.ok(isValidState(DEFAULT_STATE));
+  assert.equal(isValidState({ ...DEFAULT_STATE, camera: "drone" }), false);
+  assert.equal(isValidState(null), false);
+  for (const f of FIELDS) {
+    const ids = f.options.map((o) => o.id);
+    assert.equal(new Set(ids).size, ids.length, f.id);
+  }
+  assert.equal(optionText("camera", "nope"), "");
 });
