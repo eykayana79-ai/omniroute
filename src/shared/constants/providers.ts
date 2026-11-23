@@ -338,6 +338,15 @@ export const APIKEY_PROVIDERS = {
     textIcon: "NB",
     website: "https://nanobananaapi.ai",
   },
+  fal: {
+    id: "fal",
+    alias: "fal",
+    name: "fal.ai",
+    icon: "movie",
+    color: "#E5267A",
+    textIcon: "FA",
+    website: "https://fal.ai/dashboard/keys",
+  },
   "ollama-cloud": {
     id: "ollama-cloud",
     alias: "ollamacloud",

@@ -163,7 +163,7 @@ Zod schemas, and unit tests aligned when editing.
   Puter, Longcat, Alibaba, Kimi, Minimax, Blackbox, Synthetic, Kilo Gateway,
   Z.AI, GLM, Deepgram, AssemblyAI, ElevenLabs, Cartesia, PlayHT, Inworld,
   NanoBanana, SD WebUI, ComfyUI, Ollama Cloud, Perplexity Search, Serper, Brave, Exa,
-  Tavily, OpenCode Zen/Go, Bailian Coding Plan, and more.
+  Tavily, OpenCode Zen/Go, Bailian Coding Plan, fal.ai (image-to-video), and more.
 - **Custom**: OpenAI-compatible (`openai-compatible-*`) and Anthropic-compatible (`anthropic-compatible-*`) prefixes
 
 Providers are registered in `src/shared/constants/providers.ts` with Zod validation at module load.
