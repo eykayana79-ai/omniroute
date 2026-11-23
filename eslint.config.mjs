@@ -33,6 +33,8 @@ const eslintConfig = [
       "out/**",
       "build/**",
       "next-env.d.ts",
+      // Standalone app with its own toolchain
+      "video-studio/**",
       // Scripts and binaries
       "scripts/**",
       "bin/**",
