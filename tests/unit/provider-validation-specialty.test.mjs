@@ -398,3 +398,37 @@ test("specialty validators cover remaining status branches for Deepgram, Assembl
   assert.equal(elevenOffline.error, "elevenlabs offline");
   assert.equal(longcatValid.valid, true);
 });
+
+test("fal validator checks the key against the queue and treats a locked account as a valid key", async () => {
+  const responses = [
+    new Response(JSON.stringify({ detail: "Request not found" }), { status: 404 }),
+    new Response(JSON.stringify({ detail: "Invalid API key" }), { status: 401 }),
+    new Response(JSON.stringify({ detail: "User is locked. Reason: Exhausted balance." }), {
+      status: 403,
+    }),
+  ];
+  const seen = [];
+  globalThis.fetch = async (url, init = {}) => {
+    seen.push({ url: String(url), auth: (init.headers || {}).Authorization });
+    return responses.shift();
+  };
+
+  const ok = await validateProviderApiKey({ provider: "fal", apiKey: "fal-key" });
+  const bad = await validateProviderApiKey({ provider: "fal", apiKey: "fal-key" });
+  const locked = await validateProviderApiKey({ provider: "fal", apiKey: "fal-key" });
+
+  assert.equal(ok.valid, true);
+  assert.equal(bad.valid, false);
+  assert.equal(bad.error, "Invalid API key");
+  assert.equal(locked.valid, true);
+  for (const s of seen) {
+    assert.match(s.url, /^https:\/\/queue\.fal\.run\/.+\/status$/);
+    assert.equal(s.auth, "Key fal-key");
+  }
+
+  globalThis.fetch = async () => {
+    throw new Error("fal offline");
+  };
+  const offline = await validateProviderApiKey({ provider: "fal", apiKey: "fal-key" });
+  assert.equal(offline.error, "fal offline");
+});

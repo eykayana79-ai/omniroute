@@ -69,6 +69,12 @@ const STATIC_MODEL_PROVIDERS: Record<string, () => Array<{ id: string; name: str
     { id: "nanobanana-flash", name: "NanoBanana Flash (Gemini 2.5 Flash)" },
     { id: "nanobanana-pro", name: "NanoBanana Pro (Gemini 3 Pro)" },
   ],
+  fal: () => [
+    { id: "seedance-2.0-fast", name: "Seedance 2.0 Fast (Image to Video)" },
+    { id: "grok-imagine-video-v1.5", name: "Grok Imagine Video v1.5 (Image to Video)" },
+    { id: "kling-v3-standard", name: "Kling v3 Standard (Image to Video)" },
+    { id: "hailuo-2.3-standard", name: "Hailuo 2.3 Standard (Image to Video)" },
+  ],
   antigravity: () => [
     { id: "claude-opus-4-6-thinking", name: "Claude Opus 4.6 Thinking" },
     { id: "claude-sonnet-4-6", name: "Claude Sonnet 4.6" },

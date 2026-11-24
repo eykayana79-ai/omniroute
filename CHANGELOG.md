@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### ✨ New Features
+
+- **fal.ai Image-to-Video:** New `fal` API-key provider for `/v1/videos/generations` with Seedance 2.0 Fast, Grok Imagine Video v1.5, Kling v3 Standard and Hailuo 2.3 Standard. Requests take `image_url` (https URL or base64 data URI), `duration`, `aspect_ratio`, `resolution`, `generate_audio` and `negative_prompt`; omniroute submits to the fal queue, polls, and returns the hosted video URL (or base64 with `response_format: "b64_json"`). The Media Playground video tab gains a source-image picker, duration and aspect-ratio options and an inline video player. Usage is billed to the fal account that owns the key.
+
 ---
 
 ## [3.6.1] — 2026-04-10

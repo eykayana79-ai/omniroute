@@ -375,6 +375,31 @@ async function validateNanoBananaProvider({ apiKey, providerSpecificData = {} }:
   }
 }
 
+async function validateFalProvider({ apiKey, providerSpecificData = {} }: any) {
+  try {
+    // fal has no key-check endpoint; ask the queue for the status of a request id
+    // that cannot exist. A bad key fails auth (401/403); a good key gets 404/422.
+    const response = await fetch(
+      "https://queue.fal.run/fal-ai/kling-video/requests/00000000-0000-0000-0000-000000000000/status",
+      {
+        method: "GET",
+        headers: applyCustomUserAgent({ Authorization: `Key ${apiKey}` }, providerSpecificData),
+      }
+    );
+    if (response.status === 401 || response.status === 403) {
+      const text = await response.text().catch(() => "");
+      // A locked account (no balance) is still a valid key; surface the reason.
+      if (/balance|locked/i.test(text)) {
+        return { valid: true, error: null, warning: "fal account balance is exhausted" };
+      }
+      return { valid: false, error: "Invalid API key" };
+    }
+    return { valid: true, error: null };
+  } catch (error: any) {
+    return { valid: false, error: error.message || "Validation failed" };
+  }
+}
+
 async function validateElevenLabsProvider({ apiKey, providerSpecificData = {} }: any) {
   try {
     // Lightweight auth check endpoint
@@ -863,6 +888,7 @@ export async function validateProviderApiKey({ provider, apiKey, providerSpecifi
     deepgram: validateDeepgramProvider,
     assemblyai: validateAssemblyAIProvider,
     nanobanana: validateNanoBananaProvider,
+    fal: validateFalProvider,
     elevenlabs: validateElevenLabsProvider,
     inworld: validateInworldProvider,
     "bailian-coding-plan": validateBailianCodingPlanProvider,

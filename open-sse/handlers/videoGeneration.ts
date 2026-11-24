@@ -7,11 +7,13 @@
  * Supported provider formats:
  * - ComfyUI: submit AnimateDiff/SVD workflow → poll → fetch video
  * - SD WebUI: POST to AnimateDiff extension endpoint
+ * - fal.ai: image-to-video via the fal queue (submit → poll → result URL)
  *
  * Response format (OpenAI-like):
  * {
  *   "created": 1234567890,
- *   "data": [{ "b64_json": "...", "format": "mp4" }]
+ *   "data": [{ "b64_json": "...", "format": "mp4" }]   // local providers
+ *   "data": [{ "url": "https://...", "format": "mp4" }] // fal (b64_json with response_format)
  * }
  */
 
@@ -22,6 +24,14 @@ import {
   fetchComfyOutput,
   extractComfyOutputFiles,
 } from "../utils/comfyuiClient.ts";
+import {
+  buildFalVideoInput,
+  falPollOptionsFromEnv,
+  fetchFalVideoUrl,
+  FalVideoError,
+  submitFalJob,
+  waitForFalJob,
+} from "../utils/falVideo.ts";
 import { saveCallLog } from "@/lib/usageDb";
 
 /**
@@ -53,6 +63,10 @@ export async function handleVideoGeneration({ body, credentials, log }) {
 
   if (providerConfig.format === "sdwebui-video") {
     return handleSDWebUIVideoGeneration({ model, provider, providerConfig, body, log });
+  }
+
+  if (providerConfig.format === "fal-queue") {
+    return handleFalVideoGeneration({ model, provider, providerConfig, body, credentials, log });
   }
 
   return {
@@ -260,5 +274,97 @@ async function handleSDWebUIVideoGeneration({ model, provider, providerConfig, b
       error: err.message,
     }).catch(() => {});
     return { success: false, status: 502, error: `Video provider error: ${err.message}` };
+  }
+}
+
+/**
+ * Handle fal.ai image-to-video generation.
+ * Submits to the fal queue, polls until done and returns the hosted video URL
+ * (or base64 when response_format is "b64_json"). Billed to the key's fal account.
+ */
+async function handleFalVideoGeneration({
+  model,
+  provider,
+  providerConfig,
+  body,
+  credentials,
+  log,
+}) {
+  const startTime = Date.now();
+  const spec = providerConfig.models.find((m) => m.id === model)?.fal;
+  if (!spec) {
+    return {
+      success: false,
+      status: 400,
+      error: `Unknown fal video model: ${model}. Available: ${providerConfig.models
+        .map((m) => `${provider}/${m.id}`)
+        .join(", ")}`,
+    };
+  }
+
+  const apiKey = credentials?.apiKey || credentials?.accessToken;
+  if (!apiKey) {
+    return { success: false, status: 401, error: "No API key configured for fal" };
+  }
+
+  const built = buildFalVideoInput(spec, body);
+  if ("error" in built) {
+    return { success: false, status: 400, error: built.error };
+  }
+
+  if (log) {
+    const promptPreview = String(body.prompt ?? "").slice(0, 60);
+    log.info(
+      "VIDEO",
+      `${provider}/${model} (fal) | prompt: "${promptPreview}..." | duration: ${built.input.duration}`
+    );
+  }
+
+  let requestId: string | undefined;
+  try {
+    const job = await submitFalJob(spec.endpoint, built.input, apiKey);
+    requestId = job.requestId;
+    await waitForFalJob(job, apiKey, falPollOptionsFromEnv());
+    const url = await fetchFalVideoUrl(job, apiKey);
+
+    let item: Record<string, unknown> = { url, format: "mp4" };
+    if (body.response_format === "b64_json") {
+      const videoRes = await fetch(url);
+      if (!videoRes.ok)
+        throw new FalVideoError(502, `Could not download video: ${videoRes.status}`);
+      item = {
+        b64_json: Buffer.from(await videoRes.arrayBuffer()).toString("base64"),
+        format: "mp4",
+      };
+    }
+
+    saveCallLog({
+      method: "POST",
+      path: "/v1/videos/generations",
+      status: 200,
+      model: `${provider}/${model}`,
+      provider,
+      duration: Date.now() - startTime,
+      responseBody: { videos_count: 1, fal_request_id: requestId },
+    }).catch(() => {});
+
+    return {
+      success: true,
+      data: { created: Math.floor(Date.now() / 1000), data: [item] },
+    };
+  } catch (err) {
+    const status = err instanceof FalVideoError ? err.status : 502;
+    if (log) log.error("VIDEO", `${provider} fal error (${status}): ${err.message}`);
+    saveCallLog({
+      method: "POST",
+      path: "/v1/videos/generations",
+      status,
+      model: `${provider}/${model}`,
+      provider,
+      duration: Date.now() - startTime,
+      error: err.message,
+      responseBody: requestId ? { fal_request_id: requestId } : undefined,
+    }).catch(() => {});
+    return { success: false, status, error: `Video provider error: ${err.message}` };
   }
 }

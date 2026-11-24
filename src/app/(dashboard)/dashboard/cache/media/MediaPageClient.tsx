@@ -145,6 +145,16 @@ const PROVIDER_MODELS: Record<
   ],
   video: [
     {
+      id: "fal",
+      name: "fal.ai (Image to Video)",
+      models: [
+        { id: "fal/seedance-2.0-fast", name: "Seedance 2.0 Fast" },
+        { id: "fal/grok-imagine-video-v1.5", name: "Grok Imagine Video v1.5" },
+        { id: "fal/kling-v3-standard", name: "Kling v3 Standard" },
+        { id: "fal/hailuo-2.3-standard", name: "Hailuo 2.3 Standard" },
+      ],
+    },
+    {
       id: "comfyui",
       name: "ComfyUI",
       models: [
@@ -416,6 +426,58 @@ function ImageResults({ data }: { data: any }) {
   );
 }
 
+/** Max source image size for image-to-video uploads (sent as a data URI). */
+const MAX_VIDEO_IMAGE_BYTES = 10 * 1024 * 1024;
+
+/** Allowed durations (seconds) per fal model, mirrored from the video registry. */
+const FAL_DURATIONS: Record<string, number[]> = {
+  "fal/seedance-2.0-fast": [5, 10, 15],
+  "fal/grok-imagine-video-v1.5": [6, 10],
+  "fal/kling-v3-standard": [5, 10, 15],
+  "fal/hailuo-2.3-standard": [6, 10],
+};
+
+/** Render video results (hosted URL or base64 mp4/webp) */
+function VideoResults({ data }: { data: any }) {
+  const videos: Array<{ url?: string; b64_json?: string; format?: string }> = data?.data || [];
+  if (videos.length === 0) {
+    return <p className="text-sm text-text-muted italic">No video returned.</p>;
+  }
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {videos.map((v, i) => {
+        const format = v.format || "mp4";
+        const mime = format === "webp" ? "image/webp" : `video/${format}`;
+        const src = v.url || (v.b64_json ? `data:${mime};base64,${v.b64_json}` : null);
+        if (!src) return null;
+        return (
+          <div
+            key={i}
+            className="rounded-lg overflow-hidden border border-black/10 dark:border-white/10"
+          >
+            {format === "webp" ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={src} alt={`Generated video ${i + 1}`} className="w-full" />
+            ) : (
+              <video src={src} controls loop playsInline className="w-full bg-black" />
+            )}
+            <a
+              href={src}
+              target="_blank"
+              rel="noreferrer"
+              download={`video-${i + 1}.${format}`}
+              className="flex items-center gap-1 text-xs text-primary px-2 py-1.5 hover:underline"
+            >
+              <span className="material-symbols-outlined text-[14px]">download</span>
+              Open / Download
+            </a>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function MediaPageClient() {
   const t = useTranslations("media");
   const [activeTab, setActiveTab] = useState<Modality>("image");
@@ -438,6 +500,12 @@ export default function MediaPageClient() {
   const MAX_TRANSCRIPTION_FILE_SIZE = 4 * 1024 * 1024 * 1024; // 4 GB
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [fileSizeError, setFileSizeError] = useState<string | null>(null);
+
+  // Image-to-video (fal) inputs
+  const [videoImage, setVideoImage] = useState<string>("");
+  const [videoImageName, setVideoImageName] = useState<string>("");
+  const [videoDuration, setVideoDuration] = useState<string>("");
+  const [videoAspect, setVideoAspect] = useState<string>("9:16");
 
   // Fix #390: Track which local providers (sdwebui, comfyui) are actually configured
   // so we can hide them when they haven't been set up in the providers page
@@ -488,6 +556,9 @@ export default function MediaPageClient() {
     setError(null);
     setIsCredentialsError(false);
     setAudioFile(null);
+    setVideoImage("");
+    setVideoImageName("");
+    setVideoDuration("");
     // Pick first provider and first model automatically
     const providers = PROVIDER_MODELS[tab] ?? [];
     const firstProvider = providers[0];
@@ -518,6 +589,28 @@ export default function MediaPageClient() {
     setSelectedProvider(firstProvider?.id ?? "");
     setSelectedModel(firstProvider?.models[0]?.id ?? "");
   }
+
+  const isFalVideo = activeTab === "video" && selectedProvider === "fal";
+
+  const handleVideoImage = (file: File | undefined) => {
+    setError(null);
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Please choose an image file (JPG, PNG or WebP).");
+      return;
+    }
+    if (file.size > MAX_VIDEO_IMAGE_BYTES) {
+      setError("Image is larger than 10 MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setVideoImage(String(reader.result || ""));
+      setVideoImageName(file.name);
+    };
+    reader.onerror = () => setError("Could not read the image file.");
+    reader.readAsDataURL(file);
+  };
 
   const handleGenerate = async () => {
     setLoading(true);
@@ -609,6 +702,11 @@ export default function MediaPageClient() {
         setLoading(false);
         return;
       }
+      if (isFalVideo && !videoImage) {
+        setError("Please choose a source image for image-to-video.");
+        setLoading(false);
+        return;
+      }
       const res = await fetch(config.endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -616,6 +714,13 @@ export default function MediaPageClient() {
           model: modelId,
           prompt: prompt.trim(),
           ...(activeTab === "image" ? { size: "1024x1024", n: 1 } : {}),
+          ...(isFalVideo
+            ? {
+                image_url: videoImage,
+                ...(videoDuration ? { duration: Number(videoDuration) } : {}),
+                ...(modelId === "fal/seedance-2.0-fast" ? { aspect_ratio: videoAspect } : {}),
+              }
+            : {}),
         }),
       });
       if (!res.ok) {
@@ -751,6 +856,71 @@ export default function MediaPageClient() {
         )}
 
         {/* Transcription: file upload */}
+        {/* Image-to-video: source image + duration (fal) */}
+        {isFalVideo && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="sm:col-span-3">
+              <label className="block text-sm font-medium text-text-main mb-2">Source image</label>
+              <label className="flex items-center gap-3 px-3 py-3 rounded-lg bg-surface border border-dashed border-black/15 dark:border-white/15 cursor-pointer hover:border-primary/40">
+                {videoImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={videoImage} alt="Source" className="h-16 w-12 object-cover rounded" />
+                ) : (
+                  <span className="material-symbols-outlined text-text-muted">
+                    add_photo_alternate
+                  </span>
+                )}
+                <span className="text-sm text-text-muted truncate">
+                  {videoImageName || "Choose a product photo (JPG, PNG, WebP · max 10 MB)"}
+                </span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={(e) => handleVideoImage(e.target.files?.[0])}
+                />
+              </label>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-text-main mb-2">Duration</label>
+              <select
+                value={videoDuration}
+                onChange={(e) => setVideoDuration(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg bg-surface border border-black/10 dark:border-white/10 text-text-main text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              >
+                <option value="">Model default</option>
+                {(FAL_DURATIONS[selectedModel] ?? []).map((d) => (
+                  <option key={d} value={d}>
+                    {d}s
+                  </option>
+                ))}
+              </select>
+            </div>
+            {selectedModel === "fal/seedance-2.0-fast" && (
+              <div>
+                <label className="block text-sm font-medium text-text-main mb-2">
+                  Aspect ratio
+                </label>
+                <select
+                  value={videoAspect}
+                  onChange={(e) => setVideoAspect(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg bg-surface border border-black/10 dark:border-white/10 text-text-main text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                >
+                  {["9:16", "1:1", "16:9", "auto"].map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <p className="sm:col-span-3 text-[11px] text-text-muted/70 -mt-2">
+              Video takes 1–3 minutes. Usage is billed to the fal account of the API key set in
+              Providers.
+            </p>
+          </div>
+        )}
+
         {activeTab === "transcription" ? (
           <div>
             <label className="block text-sm font-medium text-text-main mb-2">
@@ -808,9 +978,17 @@ export default function MediaPageClient() {
         {/* Generate button */}
         <button
           onClick={handleGenerate}
-          disabled={loading || (activeTab === "transcription" ? !audioFile : !prompt.trim())}
+          disabled={
+            loading ||
+            (activeTab === "transcription"
+              ? !audioFile
+              : !prompt.trim() || (isFalVideo && !videoImage))
+          }
           className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-white font-medium transition-all bg-gradient-to-r ${config.color} ${
-            loading || (activeTab === "transcription" ? !audioFile : !prompt.trim())
+            loading ||
+            (activeTab === "transcription"
+              ? !audioFile
+              : !prompt.trim() || (isFalVideo && !videoImage))
               ? "opacity-50 cursor-not-allowed"
               : "hover:opacity-90 hover:shadow-lg"
           }`}
@@ -904,6 +1082,8 @@ export default function MediaPageClient() {
             </div>
           ) : result.type === "image" ? (
             <ImageResults data={result.data} />
+          ) : result.type === "video" ? (
+            <VideoResults data={result.data} />
           ) : result.type === "transcription" ? (
             <div className="space-y-3">
               <div className="bg-surface rounded-lg p-4 text-sm text-text-main leading-relaxed whitespace-pre-wrap">
