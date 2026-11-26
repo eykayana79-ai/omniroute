@@ -31,7 +31,8 @@ export default function RoselleCart() {
               />
               <div className="rp-nudge">
                 <div className="rp-nudge__text">
-                  Tambah <b>RM{(GOAL - PRICE).toFixed(2)}</b> lagi, dapat <b>FREE KAFTAN</b> 🎁
+                  Jumlah bayaran <b>RM{PRICE.toFixed(2)}</b>. Tambah{" "}
+                  <b>RM{(GOAL - PRICE).toFixed(2)}</b> lagi, dapat <b>FREE KAFTAN</b> 🎁
                 </div>
                 <Meter value={PRICE / GOAL} tone="accent" className="rp-meter" />
               </div>
