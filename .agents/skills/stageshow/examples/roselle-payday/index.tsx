@@ -1,5 +1,6 @@
 import { Badge, Button, Meter, Phone, Row, Stage } from "../../kit";
 import "./payday.css";
+import kaftan from "./kaftan.png";
 
 // Draft still: the cart on a phone, one step short of the Payday free-kaftan
 // threshold. RM179.10 is the real flash-sale price of the Dahliah kurung, so
@@ -36,8 +37,9 @@ export default function RoselleCart() {
               </div>
               <Row
                 pad={14}
-                lead={<span className="rp-gift">🎁</span>}
+                lead={<img className="rp-gift" src={kaftan} alt="" />}
                 title="Kaftan percuma"
+                subtitle="*random design"
                 meta={<Badge tone="neutral">Belum cukup</Badge>}
               />
               <Button variant="primary" size="large" className="rp-buy">

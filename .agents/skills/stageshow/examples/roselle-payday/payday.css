@@ -82,13 +82,13 @@
   }
 
   .rp-gift {
-    display: grid;
-    place-items: center;
+    display: block;
     width: 64px;
-    height: 64px;
+    height: 76px;
+    object-fit: contain;
     border-radius: 10px;
     background: #fff3c4;
-    font-size: 30px;
+    padding: 6px;
   }
 
   .rp-nudge {
