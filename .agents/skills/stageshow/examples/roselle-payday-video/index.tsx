@@ -284,7 +284,7 @@ export default function RoselleVideo() {
                 sekarang.
               </div>
               <div className="rv-end__pill" data-in={s.k5 >= 5 || undefined}>
-                komen berat, tinggi &amp; ukuran dada
+                Beli sementara stok ada!
               </div>
             </div>
           </>
